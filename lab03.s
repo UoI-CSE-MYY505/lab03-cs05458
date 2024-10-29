@@ -101,6 +101,43 @@ rgb888_to_rgb565:
 # ----------------------------------------
 # Write your code here.
 # You may move the "return" instruction (jalr zero, ra, 0).
+#self-note to remember args: a0 = src, a1, = width, a2 = height, a3 = dest
+
+ add t0, a0, zero # use t0 as iterator for src
+ add t1, a3, zero # use t1 as iterator for dest
+L1: #loop start
+    #use t3 to store current RGB888 pixel 
+    #use t4 as a temp var for loading and applying masks and shifts
+    #use t5 to accumulate the result
+#Load pixel
+    #I gotta load the bytes seperately because endianness, ugh
+    lbu t3, 0(t0) #load first byte
+    lbu t4, 1(t0) #load second byte
+    slli t3, t3, 8 #open space
+    add t3, t4, t3 #merge
+    lbu t4, 2(t0) #load third byte
+    slli t3, t3, 8 #open space
+    add t3, t4, t3 #merge
+#Convert pixel
+    srli t3, t3, 3 #remove 3 LSBs from the B value
+    andi t5, t3, 0x1F #copy 5 MSBs from B
+    srli t3, t3, 7 #remove 2 LSBs from G + 5 MSBs from B
+    andi t4, t3, 0x3F #copy 6 MSBs from G to result
+    slli t4, t4, 5 #reposition for 565 format
+    add t5,t4,t5 #accumulate to result
+    srli t3, t3, 9 #remove 3 LSBs from R + 6 MSBs from G
+     #the 5 MSBs from R are the only bits left in t3, no need to transfer to t4
+     slli t3, t3, 11 #reposition for 565 format
+    add t5, t3, t5 #accumulate to result
+#copy the result to memory (same way as load, byte by byte, except in reverse order because of endianness)
+    sb t5, 0(t1) #copy LSB
+    srli t5, t5, 8 #shift right to get MSB on low
+    sb t5, 1(t1) #copy MSB
+#increment iterators and loop
+    addi t0, t0, 3 #increment by 1 RGB888 pixel (3b)
+    addi t1, t1, 2 #increment by 1 RGB565 pixel (2b)
+    bltu t0, a3, L1 # loop till you reach the end of the array
+    #Note: ik this is not the right way, but idc
     jalr zero, ra, 0
 
 
